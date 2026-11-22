@@ -1,1 +1,66 @@
-"" 
+services:
+  db:
+    image: postgres:latest
+    container_name: m1inrc1-db-dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sondage_db}
+      POSTGRES_USER: ${POSTGRES_USER:-sondage_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sondage_pass}
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sondage_user} -d ${POSTGRES_DB:-sondage_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: m1inrc1-backend-dev
+    environment:
+      NODE_ENV: development
+      PORT: ${BACKEND_PORT:-3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sondage_user}:${POSTGRES_PASSWORD:-sondage_pass}@db:5432/${POSTGRES_DB:-sondage_db}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        VITE_WS_URL: ${VITE_WS_URL:-http://localhost:3000}
+    container_name: m1inrc1-frontend-dev
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app_net
+
+volumes:
+  pgdata_dev:
+
+networks:
+  app_net:
+    driver: bridge
