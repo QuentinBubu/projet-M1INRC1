@@ -1,1 +1,40 @@
-"" 
+name: CI Frontend
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/ci-frontend.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/ci-frontend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: TypeScript and Vite build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test --if-present
+
+      - name: Build Docker image
+        run: docker build -t m1inrc1-frontend:ci ./frontend

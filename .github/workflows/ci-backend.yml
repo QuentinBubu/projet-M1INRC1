@@ -1,1 +1,40 @@
-"" 
+name: CI Backend;
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci-backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci-backend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest;
+
+    steps:
+      - name: Checkout repository;
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: TypeScript build
+        working-directory: backend
+        run: npm run build
+
+      - name: Run backend tests
+        working-directory: backend
+        run: npm test --if-present
+
+      - name: Build Docker image
+        run: docker build -t m1inrc1-backend:ci ./backend
