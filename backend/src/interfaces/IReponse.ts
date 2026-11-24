@@ -7,4 +7,6 @@ export interface IReponse {
     nom_repondant: string | null;
     date_reponse: Date;
     sondage: ISondage;
+
+    estAnonyme(): boolean;
 };
